@@ -1,0 +1,66 @@
+<ivy-module version="2.0">
+    <info organisation="kul" module="esrocos-generator"/>
+
+    <configurations  defaultconfmapping="build->default;cjava->default;run->default">
+        <conf name="build" visibility="public" transitive="false"/><!-- to build stuff, in general -->
+        <conf name="cjava" visibility="public" transitive="false"/><!-- to compile java code -->
+        <conf name="run"   visibility="public" transitive="false"/><!-- to run the program -->
+    </configurations>
+
+    <dependencies defaultconf="build">
+        <dependency conf="cjava,run,build" org="commons-cli" name="commons-cli" rev="1.4"   />
+        <dependency org="log4j"       name="log4j"       rev="1.2.15"  />
+
+        <dependency org="org.eclipse.emf" name="org.eclipse.emf.mwe2.lib"      rev="2.9.0.201605261059" />
+        <dependency org="org.eclipse.emf" name="org.eclipse.emf.mwe2.language" rev="2.9.0.201605261059" />
+        <dependency org="org.eclipse.emf" name="org.eclipse.emf.mwe2.launch"   rev="2.9.0.201605261059" />
+        <dependency org="org.eclipse.emf" name="org.eclipse.emf.mwe2.runtime"  rev="2.9.0.201605261059" />
+
+        <dependency org="org.eclipse.birt.runtime" name="com.ibm.icu" rev="54.1.1.v201501272100"   />
+        <!-- this one should really be org.eclipse.jdt.core_3.11.2.v20160128-0629 -->
+        <dependency org="org.eclipse.jdt" name="org.eclipse.jdt.core" rev="3.10.0"   />
+
+        <dependency org="org.eclipse.xtend" name="org.eclipse.xtend.core"            rev="2.10.0" />
+        <dependency org="org.eclipse.xtend" name="org.eclipse.xtend.lib"             rev="2.10.0" />
+        <dependency org="org.eclipse.xtend" name="org.eclipse.xtend.lib.macro"       rev="2.10.0" />
+        <dependency org="org.eclipse.xtext" name="org.eclipse.xtext.xbase"           rev="2.10.0" />
+        <dependency org="org.eclipse.xtext" name="org.eclipse.xtext.xtext.generator" rev="2.10.0" />
+
+
+        <dependency conf="run,cjava" org="org.jgrapht" name="jgrapht-core" rev="1.1.0"/>
+
+        <dependency conf="run,cjava" org="commons-configuration" name="commons-configuration" rev="1.9"/>
+        <dependency conf="run,cjava" org="commons-lang"          name="commons-lang"          rev="2.6"/>
+        <dependency conf="run,build" org="commons-logging"       name="commons-logging"       rev="1.1.1"/>
+
+        <dependency conf="run,build" org="com.google.guava"  name="guava" rev="15.0"/>
+        <dependency conf="run,build" org="com.google.inject" name="guice" rev="3.0"/>
+
+        <dependency conf="run,build" org="javax.inject" name="javax.inject" rev="1"/>
+
+        <dependency conf="run,build" org="org.antlr" name="antlr-runtime" rev="3.2"/>
+
+        <dependency conf="run,build" org="org.eclipse.emf" name="org.eclipse.emf.codegen"       rev="2.11.0-v20150806-0404"/>
+        <dependency conf="run,build" org="org.eclipse.emf" name="org.eclipse.emf.codegen.ecore" rev="2.11.0-v20150806-0404"/>
+        <dependency conf="run,build" org="org.eclipse.emf" name="org.eclipse.emf.common"        rev="2.11.0-v20150805-0538"/>
+        <dependency conf="run,build" org="org.eclipse.emf" name="org.eclipse.emf.ecore"         rev="2.11.1-v20150805-0538"/>
+        <dependency conf="run,build" org="org.eclipse.emf" name="org.eclipse.emf.ecore.xmi"     rev="2.11.1-v20150805-0538"/>
+        <dependency conf="run,build" org="org.eclipse.emf" name="org.eclipse.emf.mwe.core"  rev="1.3.13"/>
+        <dependency conf="run,build" org="org.eclipse.emf" name="org.eclipse.emf.mwe.utils" rev="1.3.20.201605261059"/>
+
+        <!-- this one should really be org.eclipse.equinox.common_3.7.0.v20150402-1709 -->
+        <dependency conf="run,build" org="org.eclipse.equinox" name="org.eclipse.equinox.common" rev="3.6.0"/>
+
+        <dependency conf="run,build" org="org.eclipse.xtext" name="org.eclipse.xtext"              rev="2.10.0"/>
+        <dependency conf="run,build" org="org.eclipse.xtext" name="org.eclipse.xtext.common.types" rev="2.10.0"/>
+        <dependency conf="run,build" org="org.eclipse.xtext" name="org.eclipse.xtext.util"         rev="2.10.0"/>
+        <dependency conf="run,build" org="org.eclipse.xtext" name="org.eclipse.xtext.xbase.lib"    rev="2.10.0"/>
+
+        <dependency conf="run,build" org="org.ow2.asm" name="asm" rev="5.0.1"/>
+
+        <dependency conf="run" org="log4j"     name="log4j"     rev="1.2.14"/>
+    </dependencies>
+</ivy-module>
+
+
+

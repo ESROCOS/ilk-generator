@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="ILK-generator" default="all" xmlns:ivy="antlib:org.apache.ivy.ant">
+
+    <property name="log4j_cfg"  value="file:///${basedir}/log4j.properties"/>
+
+    <!-- The current project, that is, the DSL name. This property must be
+         overwritten when invoking ANT, in order to build all the DSLs.
+         The value written here is just the default. -->
+    <property name="projectName" value="query"/>
+
+    <!-- ======= -->
+    <!-- FOLDERS -->
+    <!-- ======= -->
+
+    <!-- The build directories where to put the outputs.
+         Note that 'dir.build.root' is in general overwritten from the Makefile -->
+    <property name="dir.build.root"      value="../build"/>
+    <property name="dir.build.java"  value="${dir.build.root}/bin"/>
+    <property name="dir.build.xtext-gen" value="${dir.build.root}/xtext-mwe2-gen"/>
+    <property name="dir.build.xtend-gen" value="${dir.build.root}/xtend-gen"/>
+    <property name="dir.build.xtext-gen.project"  value="${dir.build.xtext-gen}/${projectName}"/>
+    <property name="dir.build.xtend-gen.project"  value="${dir.build.xtend-gen}/${projectName}"/>
+
+    <!-- The directories where to find various stuff -->
+    <property name="dir.etc"        value="../etc"/>
+    <property name="dir.etc.run"    value="${dir.etc}/run"/>
+    <property name="dir_manifest"   value="${dir.etc}/manifest"/>
+    <property name="dir_projCfg"    value="${dir.etc}/project_cfg"/>
+    <property name="dir.lib.build"  value="${dir.etc}/lib/xtext"/>
+    <property name="dir.lib.cjava"  value="${dir.etc}/lib/cjava"/>
+    <property name="dir.lib.run"    value="${dir.build.root}/lib"/>
+    <property name="dir_grammars"   value="../src/grammars"/>
+    <property name="dir_dsls"       value="../src/dsls"/>
+    <property name="dir_frontend"   value="../src/ui"/>
+
+    <!-- The location of the source files and the grammar for the current DSL -->
+    <property name="dir.src.project"  value="${dir_dsls}/${projectName}/src"/>
+    <property name="grammarPath"     value="${dir_grammars}/${projectName}.xtext"/>
+
+
+    <!-- ========== -->
+    <!-- CLASSPATHs -->
+    <!-- ========== -->
+
+    <!-- The main classpath, containing more or less everything -->
+    <path id="classpath">
+        <fileset dir="${dir.lib.build}" includes="*.jar"/>
+        <fileset dir="${dir.lib.cjava}" includes="*.jar"/>
+        <pathelement path="${dir_grammars}"/>
+        <pathelement path="${dir.build.java}"/>
+        <pathelement path="${dir.build.xtend-gen}"/>
+    </path>
+
+    <path id="classpathToExecute">
+        <fileset dir="${dir.lib.run}"    includes="*.jar"/>
+        <fileset dir="${dir.build.java}" includes="*.class"/>
+    </path>
+
+	<!-- The classpath specifically for the generation of the Xtext infrastructure -->
+	<path id="classpathXtextGeneration">
+		<pathelement path="${dir.build.xtext-gen}"/>
+        <fileset dir="${dir.lib.build}" includes="*.jar"/>
+	</path>
+
+
+    <!-- ======== -->
+    <!-- CLEANING -->
+    <!-- ======== -->
+
+    <target name="clean-everything">
+        <delete failonerror="false" includeEmptyDirs="true">
+            <fileset dir="${dir.build.root}"></fileset>
+        </delete>
+    </target>
+    <target name="clean-java">
+        <delete failonerror="false">
+            <fileset dir="${dir.build.java}" includes="**/*.class"/>
+        </delete>
+    </target>
+
+
+    <!-- ============= -->
+    <!-- MISCELLANEOUS -->
+    <!-- ============= -->
+
+    <!-- This target make sure the output directories are there -->
+    <target name="create-dirs">
+        <mkdir dir="${dir.build.root}"/>
+        <mkdir dir="${dir.build.xtext-gen.project}"/>
+        <mkdir dir="${dir.build.xtend-gen.project}"/>
+        <mkdir dir="${dir.build.java}"/>
+    </target>
+
+    <target name="create-libdirs">
+        <mkdir dir="${dir.lib.build}"/>
+        <mkdir dir="${dir.lib.cjava}"/>
+        <mkdir dir="${dir.lib.run}"/>
+    </target>
+
+    <!-- IVY target to resolve the lib dependencies  -->
+    <target name="resolve-libs" description="retrieve dependencies with ivy" depends="create-libdirs">
+        <ivy:retrieve log="quiet" pattern="${dir.lib.build}/[artifact].[ext]" conf="build"/>
+    </target>
+
+    <target name="resolve-libs-cjava" description="retrieve compilation dependencies with ivy" depends="create-libdirs">
+        <ivy:retrieve log="quiet" pattern="${dir.lib.cjava}/[artifact].[ext]" conf="cjava"/>
+    </target>
+
+    <target name="resolve-libs-run" description="retrieve dependencies with ivy" depends="create-libdirs">
+        <ivy:retrieve log="quiet" pattern="${dir.lib.run}/[artifact].[ext]" conf="run"/>
+    </target>
+
+    <macrodef name="java-compiler">
+        <attribute name="src-path"/>
+        <sequential>
+            <echo message="Invoking the Java compiler on folder @{src-path}" level="info"/>
+            <javac classpathref="classpath"
+                   destdir="${dir.build.java}"
+                   includeantruntime="false"
+                   failonerror="true">
+                <src path="@{src-path}"/>
+            </javac>
+        </sequential>
+    </macrodef>
+
+    <!-- =========================================================== -->
+    <!-- GENERATION OF THE LANGUAGE INFRASTRUCTURE (Xtext artifacts) -->
+    <!-- =========================================================== -->
+
+    <!-- A little bit of sed-magic to create on the fly the .project file for
+         the current DSL. The .project file is required to fool the Xtext
+         runtime and pretend we are building an Eclipse project.
+           Sed simply replaces a placeholder in project.template with the name
+         of the DSL. -->
+    <target name="actualize_project_file">
+        <copy file="${dir_projCfg}/project.template" tofile="${dir_projCfg}/.project" />
+        <exec executable="sed">
+            <arg value="-i"/>
+            <arg value="s|==projectNamePlaceholder==|${projectName}|"/>
+            <arg value="${dir_projCfg}/.project"/>
+        </exec>
+    </target>
+
+    <!-- This target copies into the build directory all the crap required to
+         pretend that we are building an Eclipse project. The necessary things
+         are '.project', 'build.properties', and the manifest file. -->
+    <target name="copy-build-requirements" depends="create-dirs, actualize_project_file">
+        <copy file="${dir_projCfg}/build.properties"   tofile="${dir.build.xtext-gen.project}/build.properties" />
+        <move file="${dir_projCfg}/.project"           todir="${dir.build.xtext-gen.project}" />
+        <!-- In addition, copy the MWE2 workflow specific for the current DSL,
+             to the generic 'GenerateDSL.mwe2' -->
+        <copy   file="${dir.etc}/mwe2/GenerateDSL_${projectName}.mwe2"
+              tofile="${dir.etc}/mwe2/GenerateDSL.mwe2"
+           overwrite="true"/>
+    </target>
+
+    <!-- Executes a simple script that returns the file extension for the
+         current DSL. -->
+    <target name="get-file-extension">
+        <exec executable="${basedir}/${dir_dsls}/getExtension.sh"
+              outputproperty="dsl_doc_file_extension"
+              failonerror="true">
+            <arg value="${projectName}"/>
+        </exec>
+    </target>
+
+    <target name="dbg" depends="get-file-extension">
+        <echo message="${toString:classpathXtextGeneration}" level="info"/>
+    </target>
+
+
+    <!-- Generates the language infrastructure, for the current DSL (i.e. the
+         current "project"). Concretely, this target launches the 'Mwe2Launcher'
+         Java class, passing the mwe2 workflow file as the main argument.
+
+         Various other properties must be passed to override the default
+         values in the workflow file, to tailor the process for the current DSL.
+
+         Note that without the 'fork' attribute it does not work, the
+         classpath would not be correct, for some reason. -->
+    <target name="generate-xtext-artifacts"
+            depends="create-dirs,copy-build-requirements,get-file-extension,resolve-libs">
+        <java classpathref="classpathXtextGeneration"
+              classname="org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher"
+              failonerror="true" fork="true">
+            <sysproperty key="log4j.configuration" value="${log4j_cfg}"/>
+            <arg value="${dir.etc}/mwe2/GenerateDSL.mwe2"/>
+            <arg value="-p"/>
+            <arg value="outDir=${projectName}"/>
+            <arg value="grammar=${grammarPath}"/>
+            <arg value="root=${dir.build.xtext-gen}"/>
+            <arg value="extension=${dsl_doc_file_extension}"/>
+        </java>
+    </target>
+
+
+
+    <!-- ================================= -->
+    <!-- COMPILING XTEND CODE TO JAVA CODE -->
+    <!-- ================================= -->
+
+    <!-- To compile the Xtend source code into Java code, this targets invokes
+         the Xtend compiler, which is a Java class, passing the appropriate
+         arguments. -->
+    <target name="compile-xtend" depends="create-dirs,resolve-libs">
+        <pathconvert pathsep="${path.separator}"
+                     property="classpath-string"
+                     refid="classpath">
+        </pathconvert>
+        <!--echo message="${classpath-string}"/-->
+        <java classpathref="classpath"
+              classname="org.eclipse.xtend.core.compiler.batch.Main"
+              fork="true"
+              failonerror="yes">
+            <sysproperty key="log4j.configuration" value="${log4j_cfg}"/>
+            <arg value="-cp" />
+            <arg value="${classpath-string}" />
+            <arg value="-d" />
+            <arg value="${dir.build.xtend-gen.project}" />
+            <arg value="${dir.src.project}" />
+            <arg value="${dir.build.xtext-gen.project}/src-gen/"/>
+        </java>
+    </target>
+
+
+    <!-- ====================== -->
+    <!-- COMPILING JAVA SOURCES -->
+    <!-- ====================== -->
+
+    <!-- This target copies into the java build directory (where the .class
+         will be placed) a few more things generated by Xtext, which will be
+         required at runtime.
+           This target is not a dependency of any other target in this ANT file,
+         but it is executed explicitly by the Makefile. -->
+    <target name="copy-misc-xtext-bin" depends="create-dirs">
+        <copy todir="${dir.build.java}">
+            <fileset dir="${dir.build.xtext-gen.project}/src-gen/"
+                     includes="**/*.xtextbin,**/*.g,**/*.tokens" />
+        </copy>
+    </target>
+
+    <!-- The actual compiling of the Java sources of the current DSL (i.e. the
+         current "project"). -->
+    <target name="compile-java" depends="create-dirs,resolve-libs-cjava">
+        <echo message="[ant] Compiling java sources of project ${projectName}" level="info"/>
+        <java-compiler src-path="${dir.build.xtext-gen.project}/src-gen;${dir.build.xtend-gen.project};${dir.src.project}"/>
+    </target>
+
+
+    <!-- FRONTEND -->
+    <!-- This target compiles the Java source code of the user interface.
+         It is executed explicitly by the Makefile. -->
+    <target name="frontend-compile" depends="create-dirs,resolve-libs-cjava">
+        <echo message="[ant] Compiling java sources of the UI" level="info"/>
+        <java-compiler src-path="${dir_frontend}/src"/>
+    </target>
+
+</project>

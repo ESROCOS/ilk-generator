@@ -1,0 +1,11 @@
+# Ignore the default build folder
+0build/
+
+# Ignore this file as it is created on the fly by the ANT script, every time
+etc/mwe2/GenerateDSL.mwe2
+
+# Ignore the libraries folder, as the content is fetched automatically by Ivy
+etc/lib
+
+# A jar that gets automatically downloaded by the Xtext runtime (I guess)
+ant/.antlr-generator-3.2.0-patch.jar
