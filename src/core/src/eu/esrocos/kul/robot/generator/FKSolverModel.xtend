@@ -232,7 +232,15 @@ class FKSolverModel
     private static class PoseLengthComparator implements Comparator<RobotPoseUtils.PoseInfo>
     {
         override compare(PoseInfo o1, PoseInfo o2) {
-            return Integer.compare(o1.framesPath.length, o2.framesPath.length)
+            if( o1.pose.equals(o2.pose) ) return 0 // they are really the same
+
+            // Now, we know the poses are not the same. However the frames-paths
+            // might very well have the same length. In that case, we must
+            // cheat the result, to avoid considering two different poses as the
+            // same thing
+            val comp = Integer.compare(o1.framesPath.length, o2.framesPath.length)
+            if( comp == 0 ) return 1
+            return comp
         }
     }
     def private populateMapByReference(List<RobotPoseUtils.PoseInfo> request)
