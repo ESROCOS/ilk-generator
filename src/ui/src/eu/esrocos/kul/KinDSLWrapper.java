@@ -1,6 +1,8 @@
 package eu.esrocos.kul;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -21,8 +23,10 @@ import eu.esrocos.kul.robot.generator.IKSolverModel;
 import eu.esrocos.kul.robot.generator.ILKGenerator;
 import eu.esrocos.kul.robot.generator.ModelConstants;
 import eu.esrocos.kul.robot.generator.QueryProcessor;
+import eu.esrocos.kul.robot.generator.URDFGenerator;
 import eu.esrocos.kul.robot.generator.common.JacUtils;
 import eu.esrocos.kul.robot.generator.common.JacobianInfo;
+import eu.esrocos.kul.robot.generator.common.TreeUtils;
 import eu.esrocos.kul.robot.kinDsl.Robot;
 
 
@@ -127,4 +131,17 @@ public class KinDSLWrapper
 //        fsa.generateFile("cmp.cpp" , cmpGen.mainSrc(robot, gen.getConstantPoses(), gen.getOutputs() ) );
     }
 
+    public void generateURDF(String outfilepath) {
+        FileWriter out = null;
+        try {
+            out = new FileWriter( outfilepath );
+            TreeUtils tree = new TreeUtils(robot);
+            URDFGenerator gen = new URDFGenerator(robot, tree);
+
+            out.write( gen.urdf_text().toString() );
+            out.close();
+        } catch (IOException e) {
+            throw new RuntimeException("while trying to open the file: " + e.getMessage());
+        }
+    }
 }
