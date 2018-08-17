@@ -22,6 +22,7 @@ import java.util.Map
 import java.util.Objects
 import java.util.Set
 import java.util.TreeSet
+import java.util.LinkedHashSet
 
 class FKSolverSpecs
 {
@@ -291,8 +292,8 @@ class FKSolverModel
     private List<ConstantPose> constPoses = new ArrayList<ConstantPose>()
     private List<JointSuccessorPose> jointPoses = new ArrayList<JointSuccessorPose>()
     private List<PoseCompose> composes = new ArrayList<PoseCompose>()
-    private Set<RelativePose> outPoses = new HashSet<RelativePose>()
-    private Set<JacobianInfo> outJacs = new HashSet<JacobianInfo>()
+    private Set<RelativePose> outPoses = new LinkedHashSet<RelativePose>()
+    private Set<JacobianInfo> outJacs  = new LinkedHashSet<JacobianInfo>()
 
     private Map<AttachedFrame, Set<RobotPoseUtils.PoseInfo> > outputByRef =
                               new HashMap<AttachedFrame, Set<RobotPoseUtils.PoseInfo> >()
