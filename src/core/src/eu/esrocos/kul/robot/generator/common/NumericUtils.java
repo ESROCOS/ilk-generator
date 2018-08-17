@@ -1,86 +1,81 @@
 package eu.esrocos.kul.robot.generator.common;
 
-import eu.esrocos.kul.robot.generator.Common;
 import eu.esrocos.kul.robot.kinDsl.FloatLiteral;
-import eu.esrocos.kul.robot.kinDsl.InertiaParams;
-import eu.esrocos.kul.robot.kinDsl.Joint;
-import eu.esrocos.kul.robot.kinDsl.KinDslFactory;
 import eu.esrocos.kul.robot.kinDsl.Vector3;
-import eu.esrocos.kul.robot.kinDsl.impl.KinDslFactoryImpl;
 
-public class NumericUtils {
 
-	private static KinDslFactory factory    = KinDslFactoryImpl.init();
-	private static Common utils = Common.getInstance();
+public class NumericUtils
+{
+    public static class IProperties
+    {
+        public double mass = 0.0;
+        public Vector3D com = new Vector3D(0.0, 0.0, 0.0);
+        public double ixx = 0.0;
+        public double ixy = 0.0;
+        public double ixz = 0.0;
+        public double iyy = 0.0;
+        public double iyz = 0.0;
+        public double izz = 0.0;
 
-	/**
-     * Computes the inertia parameters of a rigid body in a different frame.
+        public IProperties() {}
+        public IProperties(IProperties rhs) {
+            mass  = rhs.mass ;
+            com.x = rhs.com.x;
+            com.y = rhs.com.y;
+            com.z = rhs.com.z;
+            ixx   = rhs.ixx  ;
+            iyy   = rhs.iyy  ;
+            izz   = rhs.izz  ;
+            ixy   = rhs.ixy  ;
+            ixz   = rhs.ixz  ;
+            iyz   = rhs.iyz  ;
+        }
+    }
+
+    /**
+     * Computes the inertia properties of a rigid body in a different frame.
      *
-     * The frame in which the inertia-parameters (COM position and inertia tensor)
+     * The frame in which the properties (CoM position and inertia tensor)
      * are currently expressed is C; the new frame in which such parameters
-     * have to be expressed is N.
+     * have to be expressed is N (C=Current, N=new).
      * The arguments of this function specify the transformation between C and N.
      * If the last argument 'inverse' is false, then the rotation/translation
      * parameters encode the pose of N with respect to C. Otherwise they represent
      * the pose of C with respect to N.
      *
-     * The translation is expressed in the current frame. Rotation values are basically
-     * euler angles, consecutive rotations about x, y, and z axis, in this order, of the
-     * current frame; each rotation is about the axis rotated by the previous one.
+     * The translation is expressed in the current frame. Rotation values are
+     * basically Euler angles, consecutive rotations about x, y, and z axis, in
+     * this order, of the moving frame: each rotation is about the axis rotated
+     * by the previous one ("intrinsic" rotations).
      *
      * This method does NOT support parametric properties, ie it only works
      * when the given inertia properties are all floating point constants.
      *
-     * @param inertia the input inertia parameters to be expressed in the new frame
+     * @param inertia the input properties to be expressed in the new frame
      * @param tx translation along the X axis
      * @param ty translation along the Y axis
      * @param tz translation along the Z axis
      * @param rx rotation about the X axis
      * @param ry rotation about the Y axis
      * @param rz rotation about the Z axis
-     * @param inverse if false, the previous arguments tell the pose of N wrt C; if
-     *        true they express the pose of C wrt N
-     * @return a new instance of InertiaParams that specifies the same inertial
-     *         properties of the first parameter, but expressed in the new frame N
+     * @param inverse if false, the previous arguments tell the pose of N wrt C;
+     *        if true they express the pose of C wrt N
+     * @return a new instance of IProperties that encode the same inertia as the
+     *         input, but with coordinates of the new frame N
      */
-    public static InertiaParams rototranslate(InertiaParams inertia,
-            float tx, float ty, float tz, float rx, float ry, float rz, boolean inverse)
+    public static IProperties rototranslate(IProperties in,
+            double tx, double ty, double tz, double rx, double ry, double rz, boolean inverse)
     {
-        float mass  = utils.asFloat(inertia.getMass());
+        IProperties out= new IProperties( in );
 
-        Vector3 com = inertia.getCom();
-        float comx = utils.asFloat(com.getX());
-        float comy = utils.asFloat(com.getY());
-        float comz = utils.asFloat(com.getZ());
-
-        float ixx = utils.asFloat(inertia.getIx());
-        float iyy = utils.asFloat(inertia.getIy());
-        float izz = utils.asFloat(inertia.getIz());
-        float ixy = utils.asFloat(inertia.getIxy());
-        float ixz = utils.asFloat(inertia.getIxz());
-        float iyz = utils.asFloat(inertia.getIyz());
-
-        InertiaParams translated = factory.createInertiaParams();
-        // The mass obviously does not change with a change in the reference frame:
-        FloatLiteral newMass = factory.createFloatLiteral();
-        newMass.setValue(mass);
-        translated.setMass(newMass);
-
-        double[][] tmpM = rotated_X_original(rx, ry, rz);
-        float[][] M = new float[3][3];
-        for(int r=0; r<tmpM.length; r++) {
-            for(int c=0; c<tmpM[0].length; c++) {
-                M[r][c] = (float)tmpM[r][c];
-            }
-        }
-
-        float tmp = 0;
+        double[][] M = rotated_X_original(rx, ry, rz);
+        double tmp = 0;
         if(inverse) {
             // The numbers encode the roto-translation to move from N to C, so I need
             //  to invert them in order to have the transformation C --> N, to express
             //  in N the inertia-parameters currently expressed in C
             // Rotate and invert the translation vector
-            float tmpx, tmpy, tmpz;
+            double tmpx, tmpy, tmpz;
             tmpx = M[0][0] * tx + M[0][1] * ty + M[0][2] * tz;
             tmpy = M[1][0] * tx + M[1][1] * ty + M[1][2] * tz;
             tmpz = M[2][0] * tx + M[2][1] * ty + M[2][2] * tz;
@@ -103,41 +98,26 @@ public class NumericUtils {
 
         // Compute the COM position in the new frame, applying the translation
         //  and the rotation matrix defined by rx,ry,rz ...
-        Vector3 new_com = factory.createVector3();
-        translated.setCom(new_com);
-        FloatLiteral tmpLiteral;
         // Translation:
         //   Position vector of the COM, with respect to the frame with origin as in N
         //   but same orientation as C:
-        final float comx_N = comx - tx;
-        final float comy_N = comy - ty;
-        final float comz_N = comz - tz;
-        // rotation:
-        // X ...
-        tmp = M[0][0]*comx_N + M[0][1]*comy_N + M[0][2]*comz_N;
-        tmpLiteral = factory.createFloatLiteral();
-        tmpLiteral.setValue(tmp);
-        new_com.setX(tmpLiteral);
-        // Y ...
-        tmp = M[1][0]*comx_N + M[1][1]*comy_N + M[1][2]*comz_N;
-        tmpLiteral = factory.createFloatLiteral();
-        tmpLiteral.setValue(tmp);
-        new_com.setY(tmpLiteral);
-        // Z ...
-        tmpLiteral = factory.createFloatLiteral();
-        tmp = M[2][0]*comx_N + M[2][1]*comy_N + M[2][2]*comz_N;
-        tmpLiteral.setValue(tmp);
-        new_com.setZ(tmpLiteral);
+        final double comx_N = in.com.x - tx;
+        final double comy_N = in.com.y - ty;
+        final double comz_N = in.com.z - tz;
+        // Rotation:
+        out.com.x = M[0][0]*comx_N + M[0][1]*comy_N + M[0][2]*comz_N;
+        out.com.y = M[1][0]*comx_N + M[1][1]*comy_N + M[1][2]*comz_N;
+        out.com.z = M[2][0]*comx_N + M[2][1]*comy_N + M[2][2]*comz_N;
 
         // Now computes the inertia tensor in the new frame
 
         // Parallel axis theorem; go from C to COM, and from COM to N, with two subsequent translations
-        ixx += mass * (comy_N*comy_N + comz_N*comz_N - comy*comy - comz*comz);
-        iyy += mass * (comx_N*comx_N + comz_N*comz_N - comx*comx - comz*comz);
-        izz += mass * (comx_N*comx_N + comy_N*comy_N - comx*comx - comy*comy);
-        ixy += mass * (comx_N*comy_N - comx*comy);
-        ixz += mass * (comx_N*comz_N - comx*comz);
-        iyz += mass * (comy_N*comz_N - comy*comz);
+        out.ixx += in.mass * (comy_N*comy_N + comz_N*comz_N - in.com.y*in.com.y - in.com.z*in.com.z);
+        out.iyy += in.mass * (comx_N*comx_N + comz_N*comz_N - in.com.x*in.com.x - in.com.z*in.com.z);
+        out.izz += in.mass * (comx_N*comx_N + comy_N*comy_N - in.com.x*in.com.x - in.com.y*in.com.y);
+        out.ixy += in.mass * (comx_N*comy_N - in.com.x*in.com.y);
+        out.ixz += in.mass * (comx_N*comz_N - in.com.x*in.com.z);
+        out.iyz += in.mass * (comy_N*comz_N - in.com.y*in.com.z);
 
         // Now consider the rotation of the axes.
         // The equations to transform the inertia-moments are very similar to the
@@ -146,118 +126,57 @@ public class NumericUtils {
         // but some signs are different! Remember that our convention
         // states that ixy, ixz and iyz are the centrifugal moments, and NOT the elements of
         // the inertia tensor; they differ only for the minus sign.
-
+        double tmp_ixx, tmp_iyy, tmp_izz, tmp_ixy, tmp_ixz, tmp_iyz;
         // Ixx
-        tmp =     M[0][0] * M[0][0] * ixx +
-                  M[0][1] * M[0][1] * iyy +
-                  M[0][2] * M[0][2] * izz +
-             -2 * M[0][0] * M[0][1] * ixy +
-             -2 * M[0][0] * M[0][2] * ixz +
-             -2 * M[0][1] * M[0][2] * iyz;
-        tmpLiteral = factory.createFloatLiteral();
-        tmpLiteral.setValue(tmp);
-        translated.setIx(tmpLiteral);
+        tmp_ixx = M[0][0] * M[0][0] * out.ixx +
+                  M[0][1] * M[0][1] * out.iyy +
+                  M[0][2] * M[0][2] * out.izz +
+             -2 * M[0][0] * M[0][1] * out.ixy +
+             -2 * M[0][0] * M[0][2] * out.ixz +
+             -2 * M[0][1] * M[0][2] * out.iyz;
         // Iyy
-        tmp =     M[1][0] * M[1][0] * ixx +
-                  M[1][1] * M[1][1] * iyy +
-                  M[1][2] * M[1][2] * izz +
-             -2 * M[1][0] * M[1][1] * ixy +
-             -2 * M[1][0] * M[1][2] * ixz +
-             -2 * M[1][1] * M[1][2] * iyz;
-        tmpLiteral = factory.createFloatLiteral();
-        tmpLiteral.setValue(tmp);
-        translated.setIy(tmpLiteral);
+        tmp_iyy = M[1][0] * M[1][0] * out.ixx +
+                  M[1][1] * M[1][1] * out.iyy +
+                  M[1][2] * M[1][2] * out.izz +
+             -2 * M[1][0] * M[1][1] * out.ixy +
+             -2 * M[1][0] * M[1][2] * out.ixz +
+             -2 * M[1][1] * M[1][2] * out.iyz;
         // Izz
-        tmp =     M[2][0] * M[2][0] * ixx +
-                  M[2][1] * M[2][1] * iyy +
-                  M[2][2] * M[2][2] * izz +
-             -2 * M[2][0] * M[2][1] * ixy +
-             -2 * M[2][0] * M[2][2] * ixz +
-             -2 * M[2][1] * M[2][2] * iyz;
-        tmpLiteral = factory.createFloatLiteral();
-        tmpLiteral.setValue(tmp);
-        translated.setIz(tmpLiteral);
+        tmp_izz = M[2][0] * M[2][0] * out.ixx +
+                  M[2][1] * M[2][1] * out.iyy +
+                  M[2][2] * M[2][2] * out.izz +
+             -2 * M[2][0] * M[2][1] * out.ixy +
+             -2 * M[2][0] * M[2][2] * out.ixz +
+             -2 * M[2][1] * M[2][2] * out.iyz;
         // Ixy
-        tmp =- M[0][0] * M[1][0] * ixx +
-             - M[0][1] * M[1][1] * iyy +
-             - M[0][2] * M[1][2] * izz +
-             (M[0][0]*M[1][1] + M[0][1]*M[1][0]) * ixy +
-             (M[0][0]*M[1][2] + M[0][2]*M[1][0]) * ixz +
-             (M[0][1]*M[1][2] + M[0][2]*M[1][1]) * iyz;
-        tmpLiteral = factory.createFloatLiteral();
-        tmpLiteral.setValue(tmp);
-        translated.setIxy(tmpLiteral);
+        tmp_ixy =- M[0][0] * M[1][0] * out.ixx +
+                 - M[0][1] * M[1][1] * out.iyy +
+                 - M[0][2] * M[1][2] * out.izz +
+             (M[0][0]*M[1][1] + M[0][1]*M[1][0]) * out.ixy +
+             (M[0][0]*M[1][2] + M[0][2]*M[1][0]) * out.ixz +
+             (M[0][1]*M[1][2] + M[0][2]*M[1][1]) * out.iyz;
         // Ixz
-        tmp =- M[0][0] * M[2][0] * ixx +
-             - M[0][1] * M[2][1] * iyy +
-             - M[0][2] * M[2][2] * izz +
-            (M[0][0]*M[2][1] + M[0][1]*M[2][0]) * ixy +
-            (M[0][0]*M[2][2] + M[0][2]*M[2][0]) * ixz +
-            (M[0][1]*M[2][2] + M[0][2]*M[2][1]) * iyz;
-        tmpLiteral = factory.createFloatLiteral();
-        tmpLiteral.setValue(tmp);
-        translated.setIxz(tmpLiteral);
+        tmp_ixz =- M[0][0] * M[2][0] * out.ixx +
+                 - M[0][1] * M[2][1] * out.iyy +
+                 - M[0][2] * M[2][2] * out.izz +
+            (M[0][0]*M[2][1] + M[0][1]*M[2][0]) * out.ixy +
+            (M[0][0]*M[2][2] + M[0][2]*M[2][0]) * out.ixz +
+            (M[0][1]*M[2][2] + M[0][2]*M[2][1]) * out.iyz;
         // Iyz
-        tmp =- M[1][0] * M[2][0] * ixx +
-             - M[1][1] * M[2][1] * iyy +
-             - M[1][2] * M[2][2] * izz +
-             (M[1][0]*M[2][1] + M[1][1]*M[2][0]) * ixy +
-             (M[1][0]*M[2][2] + M[1][2]*M[2][0]) * ixz +
-             (M[1][1]*M[2][2] + M[1][2]*M[2][1]) * iyz;
-        tmpLiteral = factory.createFloatLiteral();
-        tmpLiteral.setValue(tmp);
-        translated.setIyz(tmpLiteral);
+        tmp_iyz =- M[1][0] * M[2][0] * out.ixx +
+                 - M[1][1] * M[2][1] * out.iyy +
+                 - M[1][2] * M[2][2] * out.izz +
+             (M[1][0]*M[2][1] + M[1][1]*M[2][0]) * out.ixy +
+             (M[1][0]*M[2][2] + M[1][2]*M[2][0]) * out.ixz +
+             (M[1][1]*M[2][2] + M[1][2]*M[2][1]) * out.iyz;
 
-        return translated;
-    }
-
-    /**
-     * Returns the inertia tensor as a 3x3 double array
-     */
-    public static double[][] getInertiaTensor(InertiaParams properties)
-    {
-        double[][] ret = new double[3][3];
-        ret[0][0] = utils.asFloat(properties.getIx());
-        ret[1][1] = utils.asFloat(properties.getIy());
-        ret[2][2] = utils.asFloat(properties.getIz());
-
-        ret[0][1] = ret[1][0] = - utils.asFloat(properties.getIxy());
-        ret[0][2] = ret[2][0] = - utils.asFloat(properties.getIxz());
-        ret[1][2] = ret[2][1] = - utils.asFloat(properties.getIyz());
-
-        return ret;
-    }
-
-    /**
-     * Roto-translates the given 3x3 inertia tensor
-     * @param Iin the input tensor
-     * @param mass the total mass of the rigid body
-     * @param t the translation vector between the two reference frames
-     * @param out_R_in the 3x3 rotation matrix that transforms coordinates of
-     *         the original reference frame into the rotated (desired) frame
-     * @return a 3x3 double array with the inertia tensor resulting from the
-     *    translation and rotation of the given tensor
-     */
-    public static double[][] rototranslateITensor(double[][] Iin, double mass, Vector3D t, double[][] out_R_in)
-    {
-        // Translation; paralles axis theorem
-        double[][] translated = new double[3][3];
-
-        translated[0][0] = Iin[0][0] - mass * (t.z*t.z + t.y*t.y);
-        translated[1][1] = Iin[1][1] - mass * (t.z*t.z + t.x*t.x);
-        translated[2][2] = Iin[2][2] - mass * (t.y*t.y + t.x*t.x);
-
-        translated[0][1] = translated[1][0] = Iin[0][1] + mass * t.x*t.y;
-        translated[0][2] = translated[2][0] = Iin[0][2] + mass * t.x*t.z;
-        translated[1][2] = translated[2][1] = Iin[1][2] + mass * t.y*t.z;
-
-        // Rotation: I2 = 2_R_1 * I1 * (2_R_1)^T
-        if(out_R_in == null) return translated;
-
-        double[][] in_R_out = transpose3x3(out_R_in);
-        double[][] tmp = matrix3x3Mult(out_R_in, translated);
-
-        return matrix3x3Mult(tmp, in_R_out);
+        out.ixx = tmp_ixx;
+        out.iyy = tmp_iyy;
+        out.izz = tmp_izz;
+        out.ixy = tmp_ixy;
+        out.ixz = tmp_ixz;
+        out.iyz = tmp_iyz;
+        return out;
     }
 
     /**
@@ -427,26 +346,6 @@ public class NumericUtils {
         return ret;
     }
 
-	/**
-	 * Calculates the joint axis unit vector, in the coordinate frame of the
-	 * supporting link (i.e. the predecessor of the joint)
-	 * @param joint
-	 * @return
-	 */
-	public static Vector3D jointAxis(Joint joint)
-	{
-	    Vector3 rot = joint.getRefFrame().getRotation();
-        float rx = utils.asFloat(rot.getX());
-        float ry = utils.asFloat(rot.getY());
-        float rz = utils.asFloat(rot.getZ());
-
-        // The joint axis would be the third column of the rotation matrix
-        //  'link_R_joint'. Since we can only get the transpose of such a matrix,
-        //  we return the third row
-
-        double[][] joint_R_link = rotated_X_original(rx, ry, rz);
-        return new Vector3D(joint_R_link[2][0],joint_R_link[2][1],joint_R_link[2][2]);
-	}
 
 	/**
 	 * Converts the Euler angles representing rotations about moving axes into

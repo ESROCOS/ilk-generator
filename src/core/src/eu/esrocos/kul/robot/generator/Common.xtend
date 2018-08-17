@@ -2,8 +2,8 @@ package eu.esrocos.kul.robot.generator
 
 import java.util.ArrayList
 import java.util.List
-import org.eclipse.emf.ecore.util.EcoreUtil
 import java.util.Locale
+import org.eclipse.emf.ecore.util.EcoreUtil
 
 import eu.esrocos.kul.robot.kinDsl.AbstractLink
 import eu.esrocos.kul.robot.kinDsl.ChildSpec
@@ -28,6 +28,8 @@ import eu.esrocos.kul.robot.kinDsl.impl.KinDslFactoryImpl
 import eu.esrocos.kul.robot.kinDsl.KinDslFactory
 import eu.esrocos.kul.robot.kinDsl.PILiteral
 import eu.esrocos.kul.robot.generator.common.NumericUtils
+import eu.esrocos.kul.robot.generator.common.NumericUtils.IProperties
+import eu.esrocos.kul.robot.kinDsl.InertiaParams
 
 class Common {
     private static Common instance = new Common()
@@ -251,6 +253,47 @@ def Vector3 zeroVector() {
 }
 
 
+
+def void convert(InertiaParams emf, IProperties out)
+{
+    out.mass  = asFloat(emf.getMass())
+    out.com.x = asFloat(emf.getCom().getX())
+    out.com.y = asFloat(emf.getCom().getY())
+    out.com.z = asFloat(emf.getCom().getZ())
+    out.ixx   = asFloat(emf.getIx())
+    out.iyy   = asFloat(emf.getIy())
+    out.izz   = asFloat(emf.getIz())
+    out.ixy   = asFloat(emf.getIxy())
+    out.ixz   = asFloat(emf.getIxz())
+    out.iyz   = asFloat(emf.getIyz())
+}
+
+/**
+ * Returns the inertia parameters of the link in the argument, expressed
+ * in the default frame of the link.
+ */
+def IProperties getLinkFrameInertiaParams(AbstractLink link)
+{
+    val in = new IProperties
+    convert(link.inertiaParams, in)
+    // If no frame is specified, then the parameters are already expressed in the link frame
+    if(link.inertiaParams.frame === null) {
+        return in
+    }
+
+    val Vector3 trasl = link.inertiaParams.frame.transform.translation;
+    val Vector3 rotat = link.inertiaParams.frame.transform.rotation;
+    val  params =
+        NumericUtils.rototranslate(in,
+            trasl.x.asFloat, trasl.y.asFloat, trasl.z.asFloat,
+            rotat.x.asFloat, rotat.y.asFloat, rotat.z.asFloat,
+            //these numbers specify the pose of the frame in which the inertia-params
+            // are currently expressed, with respect to the link frame. The link frame
+            // is the one we want inertia to be expressed. According to docs, the next
+            // argument must then be 'true'
+            true)
+    return params
+}
 
 
 }//end of class
