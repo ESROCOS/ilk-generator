@@ -20,6 +20,7 @@
     <property name="dir.build.xtend-gen" value="${dir.build.root}/xtend-gen"/>
     <property name="dir.build.xtext-gen.project"  value="${dir.build.xtext-gen}/${projectName}"/>
     <property name="dir.build.xtend-gen.project"  value="${dir.build.xtend-gen}/${projectName}"/>
+    <property name="dir.build.xtend-gen.frontend" value="${dir.build.xtend-gen}/frontend"/>
 
     <!-- The directories where to find various stuff -->
     <property name="dir.etc"        value="../etc"/>
@@ -202,24 +203,32 @@
     <!-- To compile the Xtend source code into Java code, this targets invokes
          the Xtend compiler, which is a Java class, passing the appropriate
          arguments. -->
+    <macrodef name="xtend-compiler">
+        <attribute name="srcs-path"/>
+        <attribute name="destination"/>
+        <sequential>
+            <pathconvert pathsep="${path.separator}"
+                         property="classpath-string"
+                         refid="classpath">
+            </pathconvert>
+            <java classpathref="classpath"
+                  classname="org.eclipse.xtend.core.compiler.batch.Main"
+                  fork="true"
+                  failonerror="yes">
+                <sysproperty key="log4j.configuration" value="${log4j_cfg}"/>
+                <arg value="-cp" />
+                <arg value="${classpath-string}" />
+                <arg value="-d" />
+                <arg value="@{destination}" />
+                <arg value="@{srcs-path}" />
+            </java>
+        </sequential>
+    </macrodef>
+
     <target name="compile-xtend" depends="create-dirs,resolve-libs">
-        <pathconvert pathsep="${path.separator}"
-                     property="classpath-string"
-                     refid="classpath">
-        </pathconvert>
-        <!--echo message="${classpath-string}"/-->
-        <java classpathref="classpath"
-              classname="org.eclipse.xtend.core.compiler.batch.Main"
-              fork="true"
-              failonerror="yes">
-            <sysproperty key="log4j.configuration" value="${log4j_cfg}"/>
-            <arg value="-cp" />
-            <arg value="${classpath-string}" />
-            <arg value="-d" />
-            <arg value="${dir.build.xtend-gen.project}" />
-            <arg value="${dir.src.project}" />
-            <arg value="${dir.build.xtext-gen.project}/src-gen/"/>
-        </java>
+        <xtend-compiler srcs-path="${dir.src.project}${path.separator}${dir.build.xtext-gen.project}/src-gen/"
+                        destination="${dir.build.xtend-gen.project}">
+        </xtend-compiler>
     </target>
 
 
@@ -248,11 +257,16 @@
 
 
     <!-- FRONTEND -->
+    <target name="frontend-xtend">
+        <xtend-compiler srcs-path="${dir_frontend}/src"
+                      destination="${dir.build.xtend-gen.frontend}">
+        </xtend-compiler>
+    </target>
     <!-- This target compiles the Java source code of the user interface.
          It is executed explicitly by the Makefile. -->
-    <target name="frontend-compile" depends="create-dirs,resolve-libs-cjava">
+    <target name="frontend-compile" depends="create-dirs,resolve-libs-cjava,frontend-xtend">
         <echo message="[ant] Compiling java sources of the UI" level="info"/>
-        <java-compiler src-path="${dir_frontend}/src"/>
+        <java-compiler src-path="${dir_frontend}/src;${dir.build.xtend-gen.frontend}"/>
     </target>
 
 </project>
