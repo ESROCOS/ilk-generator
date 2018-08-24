@@ -14,6 +14,7 @@ import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.parser.IEncodingProvider;
 import org.eclipse.xtext.resource.IResourceServiceProvider;
 
+import eu.esrocos.kul.robot.generator.common.TreeUtils;
 import eu.esrocos.kul.robot.kinDsl.Robot;
 
 
@@ -45,6 +46,7 @@ public class Main
 
         KinDSLWrapper kin = new KinDSLWrapper();
         Robot robot = kin.getRobotModel(robotModelFile);
+        semanticChecks(robot);
 
         if( cmd.hasOption(opt_code__urdf) ) {
             String urdf_out = cmd.getOptionValue(opt_code__urdf);
@@ -112,6 +114,25 @@ public class Main
         opts.addOption(outdir);
         opts.addOption(urdf);
         return opts;
+    }
+
+    private static void semanticChecks(Robot robot)
+    {
+        // check connectivity first, to avoid errors in the other checks!
+
+        TreeUtils tree = new TreeUtils(robot);
+        StringBuffer err = SemanticChecks.connectivity(tree);
+        if( err.length() > 0 ) {
+            System.err.println("Connectivity errors detected for robot " + robot.getName() + ":");
+            System.err.println( err.toString() );
+            System.exit(-37);
+        }
+        err = SemanticChecks.numberingScheme(tree);
+        if( err.length() > 0 ) {
+            System.err.println("Numbering scheme errors detected for robot " + robot.getName() + ":");
+            System.err.println( err.toString() );
+            System.exit(-31);
+        }
     }
 
     private static final String opt_code__robot = "r";

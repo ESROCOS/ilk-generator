@@ -14,7 +14,8 @@ import eu.esrocos.kul.robot.kinDsl.RobotBase
 import eu.esrocos.kul.robot.kinDsl.Link
 import eu.esrocos.kul.robot.kinDsl.Joint
 import eu.esrocos.kul.robot.generator.common.NumericUtils
-
+import org.jgrapht.alg.ConnectivityInspector
+import java.util.Set
 
 /**
  * Utility functions for the inspection of the kinematic tree structure.
@@ -49,6 +50,7 @@ class TreeUtils
                 parentToChild.addEdge( l, child, new GraphEdge(childSpec.joint, l, child ) )
             }
         }
+        inspector = new ConnectivityInspector( childToParent )
     }
 
     def public robot() { return this.robot }
@@ -149,6 +151,13 @@ class TreeUtils
         return lca
     }
 
+    def public List<Set<AbstractLink>> getConnectedComponents() {
+        if( inspector.isGraphConnected() ) {
+            return null
+        }
+        return inspector.connectedSets()
+    }
+
     def private GraphEdge toParent(AbstractLink l) {
         // is there a simpler function call for graph where one knows that the outgoing
         // edge is exactly one?
@@ -158,6 +167,7 @@ class TreeUtils
     private Robot robot
     private SimpleDirectedGraph<AbstractLink, GraphEdge> childToParent
     private SimpleDirectedGraph<AbstractLink, GraphEdge> parentToChild
+    private ConnectivityInspector<AbstractLink, GraphEdge> inspector
 
 
     private static class GraphEdge
