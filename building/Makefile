@@ -32,7 +32,7 @@ java_targets  = $(foreach DSL,${DSLS},$(call java_target,${DSL}))
 
 
 # Invocation of the ANT script
-ANT=ant -f ant/build.xml -Ddir.build.root=../${DIR_BUILD_ROOT}
+ANT=ant -f ant/build.xml -autoproxy -Ddir.build.root=../${DIR_BUILD_ROOT}
 ANT_DSL=$(ANT) -DprojectName=$* # for DSL-specific targets
 
 
