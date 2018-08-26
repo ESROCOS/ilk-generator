@@ -76,13 +76,17 @@ As a **workaround**, the file required by Xtext can be downloaded manually:
 
 # Running the tool
 
-Move into the `release/` subfolder, generated after a successful build, and
-launch the program by running `run.sh`. For example:
+Move into the `building/0build` subfolder, generated after a successful build,
+and launch the program by running `run.sh`. For example:
 
 ```
-cd release/
-./run.sh --robot sample/model/ur5.kindsl --query sample/model/ur5.dtdsl --output-dir sample/gen
+cd building/0build
+./run.sh --robot ../../sample/model/ur5.kindsl --query ../../sample/model/ur5.dtdsl --output-dir ../../sample/gen
 ```
 
-The command above uses the sample input files available in `release/sample/model`.
+The command above uses the sample input files available in `sample/model`.
+
+Alternatively, after `make release`, issue the same command (adjusting the
+path of the inputs) from the `release/` folder.
+
 
